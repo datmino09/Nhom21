@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Thành viên</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .container { margin: 20px auto; width: 300px; }
+        input { display: block; width: 100%; margin: 5px 0; padding: 8px; }
+        button { margin: 5px; padding: 8px; cursor: pointer; }
+        table { width: 80%; margin: auto; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        .edit { background-color: yellow; }
+        .delete { background-color: red; color: white; }
+    </style>
+</head>
+<body>
+
+    <h1>Quản lý Thành viên</h1>
+
+    <div class="container">
+        <input type="text" id="masv" placeholder="Mã SV">
+        <input type="text" id="tensv" placeholder="Tên SV">
+        <button id="addBtn">Thêm</button>
+        <button id="saveBtn" style="display: none;">Lưu</button>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Mã SV</th>
+                    <th>Tên SV</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody id="userTable"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const API_URL = "https://67da2b9335c87309f52b3676.mockapi.io/api/user-member/Member";
+        const userTable = document.getElementById("userTable");
+        const masvInput = document.getElementById("masv");
+        const tensvInput = document.getElementById("tensv");
+        const addBtn = document.getElementById("addBtn");
+        const saveBtn = document.getElementById("saveBtn");
+
+        let users = [];
+        let editingUserId = null;
+
+        // Lấy danh sách users từ API
+        async function fetchUsers() {
+            const res = await fetch(API_URL);
+            users = await res.json();
+            renderTable();
+        }
+
+        // Hiển thị danh sách users
+        function renderTable() {
+            userTable.innerHTML = users.map(user => `
+                <tr>
+                    <td>${user.masv}</td>
+                    <td>${user.tensv}</td>
+                    <td>
+                        <button class="edit" onclick="editUser(${user.id}, '${user.masv}', '${user.tensv}')">Sửa</button>
+                        <button class="delete" onclick="deleteUser(${user.id})">Xóa</button>
+                    </td>
+                </tr>
+            `).join("");
+        }
+
+        // Thêm user mới
+        addBtn.onclick = async () => {
+            const masv = masvInput.value.trim();
+            const tensv = tensvInput.value.trim();
+            if (!masv || !tensv) return;
+
+            const res = await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ masv, tensv })
+            });
+            const newUser = await res.json();
+            users.push(newUser);
+            renderTable();
+
+            masvInput.value = "";
+            tensvInput.value = "";
+        };
+
+        // Xóa user
+        async function deleteUser(id) {
+            await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+            users = users.filter(user => user.id !== id);
+            renderTable();
+        }
+
+        // Bắt đầu chỉnh sửa
+        function editUser(id, masv, tensv) {
+            masvInput.value = masv;
+            tensvInput.value = tensv;
+            editingUserId = id;
+            addBtn.style.display = "none";
+            saveBtn.style.display = "inline-block";
+        }
+
+        // Lưu chỉnh sửa
+        saveBtn.onclick = async () => {
+            if (!masvInput.value || !tensvInput.value) return;
+            await fetch(`${API_URL}/${editingUserId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ masv: masvInput.value, tensv: tensvInput.value })
+            });
+
+            users = users.map(user => user.id === editingUserId ? { ...user, masv: masvInput.value, tensv: tensvInput.value } : user);
+            renderTable();
+
+            masvInput.value = "";
+            tensvInput.value = "";
+            editingUserId = null;
+            addBtn.style.display = "inline-block";
+            saveBtn.style.display = "none";
+        };
+
+        fetchUsers(); // Load danh sách khi trang mở
+    </script>
+
+</body>
+</html>
