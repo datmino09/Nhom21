@@ -39,64 +39,64 @@
         </table>
     </div>
 
-    <script>
+  <script>
         const API_URL = "https://67da2b9335c87309f52b3676.mockapi.io/api/user-member/Member";
         const userTable = document.getElementById("userTable");
         const masvInput = document.getElementById("masv");
         const tensvInput = document.getElementById("tensv");
         const addBtn = document.getElementById("addBtn");
         const saveBtn = document.getElementById("saveBtn");
-
-        let users = [];
+    
         let editingUserId = null;
-
+    
         // Lấy danh sách users từ API
         async function fetchUsers() {
-            const res = await fetch(API_URL);
-            users = await res.json();
-            renderTable();
+            try {
+                const res = await fetch(API_URL);
+                const users = await res.json();
+                renderTable(users);
+            } catch (error) {
+                console.error("Lỗi khi lấy dữ liệu:", error);
+            }
         }
-
+    
         // Hiển thị danh sách users
-        function renderTable() {
+        function renderTable(users) {
             userTable.innerHTML = users.map(user => `
                 <tr>
                     <td>${user.masv}</td>
                     <td>${user.tensv}</td>
                     <td>
-                        <button class="edit" onclick="editUser(${user.id}, '${user.masv}', '${user.tensv}')">Sửa</button>
-                        <button class="delete" onclick="deleteUser(${user.id})">Xóa</button>
+                        <button class="edit" onclick="editUser('${user.id}', '${user.masv}', '${user.tensv}')">Sửa</button>
+                        <button class="delete" onclick="deleteUser('${user.id}')">Xóa</button>
                     </td>
                 </tr>
             `).join("");
         }
-
+    
         // Thêm user mới
         addBtn.onclick = async () => {
             const masv = masvInput.value.trim();
             const tensv = tensvInput.value.trim();
             if (!masv || !tensv) return;
-
-            const res = await fetch(API_URL, {
+    
+            await fetch(API_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ masv, tensv })
             });
-            const newUser = await res.json();
-            users.push(newUser);
-            renderTable();
-
+    
             masvInput.value = "";
             tensvInput.value = "";
+            fetchUsers(); // Load lại danh sách sau khi thêm
         };
-
+    
         // Xóa user
         async function deleteUser(id) {
             await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-            users = users.filter(user => user.id !== id);
-            renderTable();
+            fetchUsers(); // Load lại danh sách sau khi xóa
         }
-
+    
         // Bắt đầu chỉnh sửa
         function editUser(id, masv, tensv) {
             masvInput.value = masv;
@@ -105,26 +105,26 @@
             addBtn.style.display = "none";
             saveBtn.style.display = "inline-block";
         }
-
+    
         // Lưu chỉnh sửa
         saveBtn.onclick = async () => {
             if (!masvInput.value || !tensvInput.value) return;
+    
             await fetch(`${API_URL}/${editingUserId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ masv: masvInput.value, tensv: tensvInput.value })
             });
-
-            users = users.map(user => user.id === editingUserId ? { ...user, masv: masvInput.value, tensv: tensvInput.value } : user);
-            renderTable();
-
+    
             masvInput.value = "";
             tensvInput.value = "";
             editingUserId = null;
             addBtn.style.display = "inline-block";
             saveBtn.style.display = "none";
+    
+            fetchUsers(); // Load lại danh sách sau khi sửa
         };
-
+    
         fetchUsers(); // Load danh sách khi trang mở
     </script>
 
